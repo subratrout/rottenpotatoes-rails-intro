@@ -11,13 +11,29 @@ class MoviesController < ApplicationController
   end
 
   def index
-    @movies = Movie.all
-    if params[:sort_by].nil?
+    @all_ratings = Movie.all_ratings
+    @selected_ratings = @all_ratings if @selected_ratings.nil?
+    if params[:sort_by].nil? && params[:ratings].nil?
       @movies = Movie.all
     else
       @sort_by = params[:sort_by]
-      begin
-        @movies = Movie.order(@sort_by).all
+      @ratings = params[:ratings]
+
+      if params[:ratings].nil?
+        ratings = Movie.all_ratings
+      else
+        ratings = @ratings.keys
+      end
+      @selected_ratings = ratings
+      if @sort_by.nil?
+        @movies = Movie.where(rating: ratings)
+      else
+        begin
+          @movies = Movie.order("#{@sort_by} ASC").where(rating: ratings)
+        rescue ActiveRecord::StatementInvalid
+          flash[:warning] = "Movies can not be sorted in this order"
+          @movies = Movie.find_all_by_rating(ratings)
+        end
       end
     end
   end
